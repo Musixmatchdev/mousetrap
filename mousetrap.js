@@ -183,6 +183,22 @@
     }
 
     /**
+     * cross browser remove event method
+     *
+     * @param {Element|HTMLDocument} object
+     * @param {string} type
+     * @param {EventListenerOrEventListenerObject} callback
+     * @returns void
+     */
+    function _removeEvent (object, type, callback) {
+        if (object.removeEventListener) {
+            object.removeEventListener(type, callback, false);
+            return;
+        }
+        object.detachEvent('on' + type, callback);
+    }
+
+    /**
      * takes the event and returns the key character
      *
      * @param {Event} e
@@ -707,13 +723,13 @@
             _ignoreNextKeypress = processedSequenceCallback && e.type == 'keydown';
         };
 
-        /**
+	        /**
          * handles a keydown event
          *
          * @param {Event} e
          * @returns void
          */
-        function _handleKeyEvent(e) {
+        self._handleKeyEvent = function (e) {
 
             // normalize e.which for key events
             // @see http://stackoverflow.com/questions/4285627/javascript-keycode-vs-charcode-utter-confusion
@@ -886,9 +902,9 @@
         };
 
         // start!
-        _addEvent(targetElement, 'keypress', _handleKeyEvent);
-        _addEvent(targetElement, 'keydown', _handleKeyEvent);
-        _addEvent(targetElement, 'keyup', _handleKeyEvent);
+        _addEvent(targetElement, 'keypress', self._handleKeyEvent);
+        _addEvent(targetElement, 'keydown', self._handleKeyEvent);
+        _addEvent(targetElement, 'keyup', self._handleKeyEvent);
     }
 
     /**
@@ -933,6 +949,29 @@
         var self = this;
         return self.bind.call(self, keys, function() {}, action);
     };
+
+    /**
+     * destroy mousetrap object
+     *
+     * - call reset on the mousetrap object ( removing all binding )
+     * - remove all javascript event listener from target element or document
+     * - remove all reference to target
+     *
+     * @return void
+     */
+
+    Mousetrap.prototype.destroy = function () {
+        var self = this
+
+        self.reset()
+
+        _removeEvent(self.target, 'keypress', self._handleKeyEvent);
+        _removeEvent(self.target, 'keydown', self._handleKeyEvent);
+        _removeEvent(self.target, 'keyup', self._handleKeyEvent);
+
+        self.target = undefined
+        self._handleKeyEvent = undefined
+    }
 
     /**
      * triggers an event that has already been bound
